@@ -1,4 +1,4 @@
-// src/controllers/userController.ts
+// backend/src/controllers/userController.ts
 import { Request, Response } from 'express';
 import User from '../models/User';
 import jwt from 'jsonwebtoken';
