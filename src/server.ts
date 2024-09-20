@@ -1,10 +1,11 @@
-// src/server.ts
+// backend/src/server.ts
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import userRoutes from "./routes/userRoutes";
 import documentRoutes from "./routes/documentRoutes";
+import llmRoutes from './routes/llmRoutes';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/users', userRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/llm', llmRoutes);
 
 mongoose
     .connect(process.env.MONGODB_URI || "")

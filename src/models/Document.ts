@@ -1,3 +1,5 @@
+// backend/src/models/Document.ts
+
 import { Schema, model, Document as MDocument } from 'mongoose';
 import { IUser } from './User';
 
