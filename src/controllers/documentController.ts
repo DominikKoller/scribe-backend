@@ -45,6 +45,8 @@ export const getDocumentById = async (req: AuthRequest, res: Response) => {
     }
 };
 
+/*
+// Replaced by socket.io methods
 export const updateDocument = async (req: AuthRequest, res: Response) => {
     try {
         const { title, content } = req.body;
@@ -61,7 +63,9 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 };
+*/
 
+// TODO: what should socket.io do when a document is deleted?
 export const deleteDocument = async (req: AuthRequest, res: Response) => {
     try {
         const document = await DocumentModel.findOneAndDelete({

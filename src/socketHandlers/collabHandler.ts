@@ -1,24 +1,22 @@
 // backend/src/socketHandlers/collabHandler.ts
 
-import { Server, Socket } from 'socket.io';
+import mongoose from 'mongoose';
+import { AuthSocket } from '../types';
 import DocumentModel from '../models/Document';
 import StepModel from '../models/Step';
 import { Step } from 'prosemirror-transform';
 import { EditorState } from 'prosemirror-state';
-import { schema } from 'prosemirror-schema-basic';
-import jwt from 'jsonwebtoken';
+import { mySchema } from '../utils/schema';
+import { Server as SocketIOServer } from 'socket.io';
 
-// TODO: can we not use middleware for Auth instead?
-interface AuthSocket extends Socket {
-    user?: string;
-}
-
-export function collabHandler(io: Server, socket: AuthSocket) {
+export function collabHandler(io: SocketIOServer, socket: AuthSocket) {
     // Handle joining a document room
-    socket.on('join-document', async ({ documentId, token }) => {
+    socket.on('join-document', async ({ documentId }) => {
         try {
-            const decoded: any = jwt.verify(token, process.env.JWT_SECRET || '');
-            socket.user = decoded.id;
+            if (!socket.user) {
+                socket.emit('error', 'Not authenticated');
+                return;
+            }
 
             // check if the document exists and the user has access
             const document = await DocumentModel.findById(documentId);
@@ -27,8 +25,6 @@ export function collabHandler(io: Server, socket: AuthSocket) {
                 return;
             }
             // TODO check if the user has access to the document !!!
-            // but is this really the right place to do this? Should this not happen in middleware?
-            // hm maybe not because the middleware would not have access to the document from the db?
             socket.join(documentId);
 
             // send initial document state
@@ -42,30 +38,44 @@ export function collabHandler(io: Server, socket: AuthSocket) {
     });
 
     socket.on('submit-steps', async ({ documentId, version, steps, clientID }) => {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             if (!socket.user) {
+                console.log('Not authenticated');
                 socket.emit('error', 'Not authenticated');
+                await session.abortTransaction();
+                await session.endSession();
                 return;
             }
 
-            const document = await DocumentModel.findById(documentId);
+            const document = await DocumentModel.findById(documentId).session(session);
+
             if (!document) {
+                console.log('Document not found');
                 socket.emit('error', 'Document not found');
+                await session.abortTransaction();
+                await session.endSession();
                 return;
             }
 
             if (version !== document.version) {
+                console.log('Version mismatch. Client:', version, 'Server:', document.version);
                 socket.emit('version-mismatch', {
                     serverVersion: document.version,
                 });
+                await session.abortTransaction();
+                await session.endSession();
                 return;
             }
 
             // apply steps to document
-            const doc = schema.nodeFromJSON(document.content);
-            let editorState = EditorState.create({ doc });
+            let editorState = EditorState.create({
+                doc: document.content ? mySchema.nodeFromJSON(document.content) : undefined,
+                schema: mySchema
+            });
 
-            let newSteps = steps.map((stepJSON: any) => Step.fromJSON(schema, stepJSON));
+            let newSteps = steps.map((stepJSON: any) => Step.fromJSON(mySchema, stepJSON));
 
             let tr = editorState.tr;
             newSteps.forEach((step: Step) => {
@@ -73,7 +83,10 @@ export function collabHandler(io: Server, socket: AuthSocket) {
             });
 
             if (!tr.doc) {
+                console.log('Invalid steps');
                 socket.emit('error', 'Invalid steps');
+                await session.abortTransaction();
+                await session.endSession();
                 return;
             }
 
@@ -87,41 +100,46 @@ export function collabHandler(io: Server, socket: AuthSocket) {
                 });
             });
 
-            await StepModel.insertMany(stepModels);
+            await StepModel.insertMany(stepModels, { session });
 
             // Update document content
             document.content = tr.doc.toJSON();
             document.version += newSteps.length;
-            await document.save();
+            await document.save({ session });
 
-            // Broadcast new document state
-            socket.to(documentId).emit('receive-steps', {
+            await session.commitTransaction();
+            await session.endSession();
+
+            // Broadcast new document state, including to the sender
+            io.to(documentId).emit('receive-steps', {
                 steps: newSteps.map((step: Step) => step.toJSON()),
                 version: document.version,
-                clientID,
+                clientIDs: newSteps.map(() => clientID),
             });
 
-            // Acknowledge the client
-            socket.emit('acknowledge', {
-                version: document.version,
-            });
         } catch (error) {
-            console.error('Error submitting steps:', error);
+            await session.abortTransaction();
+            await session.endSession();
+            console.error('Error submitting steps. This may be due to another transaction happening'); // this may be fine, so remove error message
             socket.emit('error', 'Internal server error');
         }
-
     });
 
     socket.on('get-steps', async ({ documentId, fromVersion }) => {
         try {
             const steps = await StepModel.find({
                 documentId,
-                version: { $gte: fromVersion },
+                version: { $gt: fromVersion }, // Fetch steps with versions greater than client's
             }).sort({ version: 1 });
+
+            if (steps.length === 0) {
+                return;
+            }
 
             socket.emit('receive-steps', {
                 steps: steps.map((step) => step.step),
-                version: steps.length > 0 ? steps[steps.length - 1].version : fromVersion,
+                version: steps[steps.length - 1].version, // I have the feeling this is wrong! But it should not have an impact?
+                clientIDs: steps.map((step) => step.clientID),
             });
         } catch (error) {
             console.error('Error getting steps:', error);
