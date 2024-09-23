@@ -1,9 +1,13 @@
 // backend/src/middleware/auth.ts
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwtUtils';
+import jwt from 'jsonwebtoken';
 
 interface AuthRequest extends Request {
     user?: string;
+}
+
+interface DecodedToken {
+    userId: string;
 }
 
 export const authenticateJWT = (
@@ -11,17 +15,18 @@ export const authenticateJWT = (
     res: Response,
     next: NextFunction
 ) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-    if (token) {
-        const decoded = verifyToken(token);
-        if (decoded) {
-            req.user = decoded.userId;
-            next();
-        } else {
-            res.sendStatus(403); // Forbidden
-        }
-    } else {
-        res.sendStatus(401); // Unauthorized
+    if (!token) {
+        return res.sendStatus(401); // Unauthorized
     }
+
+    jwt.verify(token, process.env.JWT_SECRET as jwt.Secret, (err, decoded) => {
+        if (err) {
+            return res.sendStatus(403); // Forbidden
+        }
+        req.user = (decoded as DecodedToken).userId;
+        next();
+    });
 };

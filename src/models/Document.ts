@@ -1,19 +1,28 @@
 // backend/src/models/Document.ts
 
-import { Schema, model, Document as MDocument } from 'mongoose';
+import { Schema, model, Document as MDocument, Types } from 'mongoose';
 
 export interface IDocument extends MDocument {
     title: string;
-    content: any;
-    owner: Schema.Types.ObjectId;
-    version: number;
+    content: Buffer;
+    owner: Types.ObjectId;
+    users: Types.ObjectId[];
 }
 
 const DocumentSchema = new Schema<IDocument>({
     title: { type: String, required: true },
-    content: { type: Schema.Types.Mixed, required: true },
-    owner: { type: Schema.Types.ObjectId, ref: 'User', required: true},
-    version: { type: Number, required: true, default: 0 }
-});
+    content: {
+        type: Buffer,
+        validate: {
+            validator: function (v: Buffer) {
+                // Custom check: ensure it's a buffer, but allow empty buffer
+                return v != null && v instanceof Buffer;
+            },
+            message: 'Content must be a buffer',
+        },
+    },
+    owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    users: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+}, { timestamps: true });
 
 export default model<IDocument>('Document', DocumentSchema);

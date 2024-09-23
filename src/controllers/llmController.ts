@@ -13,6 +13,12 @@ interface AuthRequest extends Request {
 }
 
 export const runLLMOnDocument = async (req: AuthRequest, res: Response) => {
+
+  throw new Error('Not implemented');
+
+}
+  /*
+  // OLD CODE
   try {
     const documentId = req.params.id;
 
@@ -150,3 +156,5 @@ export const runLLMOnDocument = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+*/

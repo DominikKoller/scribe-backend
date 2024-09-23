@@ -2,18 +2,14 @@
 import { Router } from 'express';
 import {
     createDocument,
-    getDocuments,
-    getDocumentById,
-    // updateDocument,
-    deleteDocument
+    deleteDocument,
+    getDocumentTitles,
 } from '../controllers/documentController';
 import { authenticateJWT } from '../middleware/auth';
 const router = Router();
 
+router.get('/', authenticateJWT, getDocumentTitles);
 router.post('/', authenticateJWT, createDocument);
-router.get('/', authenticateJWT, getDocuments);
-router.get('/:id', authenticateJWT, getDocumentById);
-// router.put('/:id', authenticateJWT, updateDocument);
 router.delete('/:id', authenticateJWT, deleteDocument);
 
 export default router;

@@ -1,3 +1,5 @@
+// backend/src/models/User.ts
+
 import { Schema, model, Document } from "mongoose";
 import bcrypt from "bcrypt";
 
@@ -7,6 +9,7 @@ export interface IUser extends Document {
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
+// note I do not have a ID field here, because mongoose will automatically add it
 const UserSchema = new Schema<IUser>({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
