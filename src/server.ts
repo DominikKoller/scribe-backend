@@ -13,7 +13,9 @@ dotenv.config();
 const EXPRESS_PORT = process.env.EXPRESS_PORT ? parseInt(process.env.EXPRESS_PORT) : 3000;
 
 mongoose
-    .connect(process.env.MONGODB_URI || "")
+    .connect(process.env.MONGODB_URI || "", {
+        autoIndex: true,
+    })
     .then(() => {
         console.log("Connected to MongoDB");
     })

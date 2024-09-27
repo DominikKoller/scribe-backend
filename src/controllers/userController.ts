@@ -52,8 +52,6 @@ export const loginUser = async (req: Request, res: Response) => {
 export const anonymousLogin = async (req: Request, res: Response) => {
     try {
         const anonymousUser = new User({ 
-            email: undefined,
-            password: undefined,
             isAnonymous: true,
         });
 
