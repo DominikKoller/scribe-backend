@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources';
 import hocuspocusServer from '../hocuspocusServer';
 import * as Y from 'yjs';
+import { z } from 'zod';
 
 interface AuthRequest extends Request {
   user?: string;
@@ -30,28 +31,135 @@ export const runLLMOnDocument = async (req: AuthRequest, res: Response) => {
     const documentId = req.params.id;
 
     // Access Yjs document
-    const context = { isFromServer: true};
+    const context = { isFromServer: true };
     const connection = await hocuspocusServer.openDirectConnection(documentId, context);
 
     connection.context = connection.context || {};
     connection.context.isFromServer = true;
 
-    await connection.transact((document) => {
-      const tiptapYFragment = document.getXmlFragment('default');
-      const commentsArray: Y.Array<CommentType> = document.getArray('comments')
+    await connection.transact(async (document) => {
+      try {
+        const tiptapYFragment = document.getXmlFragment('default');
+        const commentsArray: Y.Array<CommentType> = document.getArray('comments')
 
-      // example usage: add a comment to the first paragraph
-      addComment(tiptapYFragment, commentsArray, 0, "hon hon bonjour", "skynet");
+        // example usage: add a comment to the first paragraph
+        // addComment(tiptapYFragment, commentsArray, 0, "hon hon bonjour", "skynet");
 
-      console.log(tiptapYFragment.toString());
+        const paragraphsWithIndices = getAllParagraphTexts(tiptapYFragment).map((text, index) => ({ index, text }));
+
+        // Prepare the prompt
+        const messages: ChatCompletionMessageParam[] = [
+          {
+            role: 'system',
+            content:
+              'You are a helpful assistant that reads a document and adds comments on things you like and things you think should be improved.',
+          },
+          {
+            role: 'user',
+            content: `Here is the document split into paragraphs. Each paragraph has an index number.\n\n${paragraphsWithIndices
+              .map((p) => `${p.index}: ${p.text}`)
+              .join('\n')}\n\nPlease comment on all things you like, and on all things you think should be improved.\n\nUse the 'add_comments' tool to add your comments to specific paragraphs, referring to them by their index number.`,
+          },
+        ];
+
+        // Define the tool
+        const tools: ChatCompletionTool[] = [
+          {
+            type: 'function',
+            function: {
+              name: 'add_comments',
+              strict: true,
+              description: 'Adds comments to the specified paragraphs in the document.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  comments: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        paragraph_index: {
+                          type: 'integer',
+                          description:
+                            'The index number of the paragraph to add the comment to.',
+                        },
+                        comment_text: {
+                          type: 'string',
+                          description: 'The text of the comment.',
+                        },
+                      },
+                      required: ['paragraph_index', 'comment_text'],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ['comments'],
+                additionalProperties: false,
+              },
+            },
+          },
+        ];
+
+        // OpenAI API setup
+        const openai = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        // Call the OpenAI API
+        const response = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages,
+          tools,
+          tool_choice: 'auto',
+        });
+
+        const message = response.choices[0].message;
+
+        console.log("Message from OpenAI:", message);
+
+        // Handle tool calls
+        if (message.tool_calls && message.tool_calls.length > 0) {
+          for (const toolCall of message.tool_calls) {
+            const toolType = toolCall.type;
+            if (toolType === 'function') {
+              const functionName = toolCall.function.name;
+              const functionArguments = JSON.parse(toolCall.function.arguments);
+
+              if (functionName === 'add_comments') {
+                addComments(tiptapYFragment, commentsArray, functionArguments.comments);
+              }
+              else {
+                console.warn('Unknown function name:', functionName);
+              }
+            }
+          }
+        }
+        else {
+          console.warn('No tool calls in response');
+        }
+        console.log("Document updated with comments");
+      } catch (error) {
+        console.error('Error in runLLMOnDocument:', error);
+      }
     });
 
     await connection.disconnect();
 
+    // TODO if there was an error in the transaction, we should not return success
     res.status(200).json({ message: 'Server-side changes made to document' });
   } catch (error) {
     console.error('Error in runLLMOnDocument:', error);
     res.status(500).json({ message: 'Internal Server Error' });
+  }
+}
+
+function addComments(
+  tiptapYFragment: Y.XmlFragment,
+  commentsArray: Y.Array<CommentType>,
+  comments: { paragraph_index: number, comment_text: string }[]
+) {
+  for (const comment of comments) {
+    addComment(tiptapYFragment, commentsArray, comment.paragraph_index, comment.comment_text, 'Skynet');
   }
 }
 

@@ -28,7 +28,8 @@
     "prosemirror-transform": "^1.10.0",
     "socket.io": "^4.7.5",
     "uuid": "^10.0.0",
-    "yjs": "^13.6.19"
+    "yjs": "^13.6.19",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
