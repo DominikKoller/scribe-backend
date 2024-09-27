@@ -43,7 +43,7 @@ export const getDocumentTitles = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// TODO we should inform yjs that the document has been deleted & it cannot be accessed anymore
+// TODO we should inform yjs/Hocuspocus that the document has been deleted & it cannot be accessed anymore
 export const deleteDocument = async (req: AuthRequest, res: Response) => {
     try {
         const document = await DocumentModel.findOneAndDelete({
