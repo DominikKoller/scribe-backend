@@ -48,3 +48,26 @@ export const loginUser = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 };
+
+export const anonymousLogin = async (req: Request, res: Response) => {
+    try {
+        const anonymousUser = new User({ 
+            email: undefined,
+            password: undefined,
+            isAnonymous: true,
+        });
+
+        await anonymousUser.save();
+
+        const token = jwt.sign(
+            { userId: anonymousUser._id, isAnonymous: true },
+            process.env.JWT_SECRET as jwt.Secret,
+            { expiresIn: '1h' }
+        );
+
+        res.status(201).json({ token });
+    } catch (error) {
+        console.error("Error creating anonymous user: ", error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
