@@ -1,15 +1,11 @@
 // controllers/llmController.ts
 
 import { Request, Response } from 'express';
-import DocumentModel from '../models/Document';
-import { mySchema } from '../utils/schema'; // Ensure this matches your frontend schema
-import { extractParagraphsWithPositions } from '../utils/documentUtils';
 import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources';
 import hocuspocusServer from '../hocuspocusServer';
 import * as Y from 'yjs';
-import { z } from 'zod';
 
 interface AuthRequest extends Request {
   user?: string;
@@ -25,11 +21,9 @@ export interface CommentType {
   pending?: boolean;
 }
 
-export const runLLMOnDocument = async (req: AuthRequest, res: Response) => {
+export const runLLMOnDocument = async (documentId: string) => {
 
   try {
-    const documentId = req.params.id;
-
     // Access Yjs document
     const context = { isFromServer: true };
     const connection = await hocuspocusServer.openDirectConnection(documentId, context);
@@ -158,11 +152,10 @@ In any stage of your feedback, it is very important that you encourage the stude
 
     await connection.disconnect();
 
-    // TODO if there was an error in the transaction, we should not return success
-    res.status(200).json({ message: 'Server-side changes made to document' });
+    return true;
   } catch (error) {
     console.error('Error in runLLMOnDocument:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    return false;
   }
 }
 

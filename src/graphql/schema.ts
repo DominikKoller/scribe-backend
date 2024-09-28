@@ -1,13 +1,9 @@
 const typeDefs = `#graphql
     scalar DateTime
 
-    type Query {
-        hello: String!
-    }
-
     type User {
         id: ID!
-        email: String!
+        email: String
         isAnonymous: Boolean!
     }
 
@@ -16,24 +12,18 @@ const typeDefs = `#graphql
         title: String!
         owner: User!
         users: [User!]!
-        createdAt: DateTime!
-        updatedAt: DateTime!
+        # createdAt: DateTime!
+        # updatedAt: DateTime!
     }
 
+    # could be more later on
     type AuthPayload {
         token: String!
-        user: User!
-    }
-
-    # wait why would I do this?
-    type DocumentTitle {
-        id: ID!
-        title: String!
     }
 
     type Query {
-        me: User
-        documentTitles: [DocumentTitle!]!
+        me: User!
+        documents: [Document!]!
     }
 
     type Mutation {
@@ -42,6 +32,7 @@ const typeDefs = `#graphql
         anonymousLogin: AuthPayload!
         createDocument(title: String!): Document!
         deleteDocument(id: ID!): Boolean!
+        runLLMOnDocument(id: ID!): Boolean!
     }
 `;
 
