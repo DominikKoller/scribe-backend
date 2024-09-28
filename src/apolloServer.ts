@@ -19,6 +19,7 @@ const server = new ApolloServer({
 const startServer = async () => {
     const { url } = await startStandaloneServer(server, {
         context: async ({ req }) => {
+            console.log("apollo connection");
             const token = req.headers.authorization || '';
             const user = await getUserFromToken(token || '');
             return { user };
