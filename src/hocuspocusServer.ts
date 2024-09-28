@@ -8,6 +8,7 @@ import * as Y from 'yjs';
 import dotenv from 'dotenv';
 
 // TODO put this in a types file
+// TODO unify authentication between Hocuspocus and Apollo
 interface DecodedToken {
     userId: string;
 }

@@ -1,4 +1,5 @@
 // backend/src/server.ts
+
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -7,6 +8,7 @@ import userRoutes from './routes/userRoutes';
 import documentRoutes from './routes/documentRoutes';
 import llmRoutes from './routes/llmRoutes';
 import hocuspocusServer from './hocuspocusServer';
+import startApolloServer from './apolloServer';
 
 dotenv.config();
 
@@ -43,3 +45,11 @@ app.listen(EXPRESS_PORT, () => {
 });
 
 hocuspocusServer.listen();
+
+startApolloServer()
+    .then((url) => {
+        console.log(`Apollo server running at ${url}`);
+    })
+    .catch((error) => {
+        console.error("Error starting server:", error);
+    });
