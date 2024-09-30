@@ -72,6 +72,11 @@ const hocuspocusServer = HocuspocusServer.configure({
         return ydoc;
     },
 
+    async onChange(data) {
+        /* IMPLEMENT THIS */
+        /* IT SHOULD MAKE SURE THE DOCUMENT TITLE IS NOT LONGER THAN 100 CHARACTERS */
+    },
+
     async onStoreDocument(data) {
         const { documentName, document, context } = data;
 
@@ -80,12 +85,17 @@ const hocuspocusServer = HocuspocusServer.configure({
         const documentId = documentName;
         const userId = context?.userId;
 
+        // document titles are only stored in the db for querying
+        // the source of truth for the title / way to write the title is ALWAYS THE YDOC
+        const newDocumentName = document.getText('name').toString();
+
         if (!userId && !isFromServer) {
             throw new Error('Unauthorized'); // no user id in context
         }
 
         const update = {
             content: Buffer.from(Y.encodeStateAsUpdate(document)),
+            title: newDocumentName,
         };
 
         let query;

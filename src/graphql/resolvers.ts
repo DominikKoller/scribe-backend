@@ -97,7 +97,15 @@ const resolvers = {
 
             paragraph.push([textNode]);
             yXmlFragment.push([paragraph]);
+            
+            // add title to ydoc
+            const nameElement = ydoc.getText('name');
+            nameElement.insert(0, title);
+            
             const content = Y.encodeStateAsUpdate(ydoc);
+            // the title is doubled in the data:
+            // once in the ydoc for syncing, and once in the document model for querying
+            // hocuspocus is responsible for syncing the title between the two
 
             const document = new DocumentModel({
                 title,
