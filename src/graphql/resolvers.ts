@@ -6,14 +6,14 @@ import { runLLMOnDocument as runLLM } from '../controllers/llmController';
 
 const resolvers = {
     Query: {
-        me: async (_:any, __:any, { user }: { user: any }) => {
+        me: async (_: any, __: any, { user }: { user: any }) => {
             if (!user) {
                 throw new Error('Not authenticated');
             }
             return user;
         },
 
-        documents: async (_:any, __:any, { user }: { user: any }) => {
+        documents: async (_: any, __: any, { user }: { user: any }) => {
             if (!user) {
                 throw new Error('Not authenticated');
             }
@@ -21,6 +21,8 @@ const resolvers = {
             return documents.map((document: any) => ({
                 id: document.id,
                 title: document.title,
+                createdAt: document.createdAt,
+                updatedAt: document.updatedAt,
             }));
         },
     },
@@ -71,8 +73,30 @@ const resolvers = {
             if (!user) {
                 throw new Error('Not authenticated');
             }
-            
+
+            // TODO
+            // We construct a default document here
+            // Instead, we should have some default stored in the database and fall back on an empty document
+            /*
+            <paragraph><italic>Start writing your application here! Once you have a first draft, or whenever you want feedback on your writing, press the MAGIC icon above!</italic></paragraph>
+            */
             const ydoc = new Y.Doc();
+
+            const yXmlFragment = ydoc.getXmlFragment('default');
+
+            const paragraph = new Y.XmlElement('paragraph');
+            const textNode = new Y.XmlText();
+            const stringToInsert = 'Start writing your college application cover letter here! Once you have a first draft, or whenever you want feedback on your writing, press the MAGIC button above!'
+ 
+            textNode.insert(
+                0,
+                stringToInsert
+            );
+
+            textNode.format(0, stringToInsert.length, { italic: {} }); // for some reason textNode.length is 0
+
+            paragraph.push([textNode]);
+            yXmlFragment.push([paragraph]);
             const content = Y.encodeStateAsUpdate(ydoc);
 
             const document = new DocumentModel({

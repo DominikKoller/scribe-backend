@@ -12,8 +12,8 @@ const typeDefs = `#graphql
         title: String!
         owner: User!
         users: [User!]!
-        # createdAt: DateTime!
-        # updatedAt: DateTime!
+        createdAt: DateTime!
+        updatedAt: DateTime!
     }
 
     # could be more later on

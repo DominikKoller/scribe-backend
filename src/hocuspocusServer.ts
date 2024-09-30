@@ -67,6 +67,8 @@ const hocuspocusServer = HocuspocusServer.configure({
 
         const ydoc = new Y.Doc();
         Y.applyUpdate(ydoc, doc.content);
+
+        // console.log('Loaded document:', ydoc.getXmlFragment('default').toJSON());
         return ydoc;
     },
 

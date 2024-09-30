@@ -37,7 +37,7 @@ export const runLLMOnDocument = async (documentId: string) => {
         const commentsArray: Y.Array<CommentType> = document.getArray('comments')
 
         // example usage: add a comment to the first paragraph
-        // addComment(tiptapYFragment, commentsArray, 0, "hon hon bonjour", "skynet");
+        // addComment(tiptapYFragment, commentsArray, 0, "text", "author");
 
         const paragraphsWithIndices = getAllParagraphTexts(tiptapYFragment).map((text, index) => ({ index, text }));
 
@@ -165,7 +165,7 @@ function addComments(
   comments: { paragraph_index: number, comment_text: string }[]
 ) {
   for (const comment of comments) {
-    addComment(tiptapYFragment, commentsArray, comment.paragraph_index, comment.comment_text, 'Skynet');
+    addComment(tiptapYFragment, commentsArray, comment.paragraph_index, comment.comment_text, 'Scribe');
   }
 }
 
