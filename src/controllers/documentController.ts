@@ -1,62 +1,58 @@
 // backend/src/controllers/documentController.ts
 
 import { Request, Response } from 'express';
-import DocumentModel from '../models/Document';
+import DocumentModel, { IDocument } from '../models/Document';
 import * as Y from 'yjs';
+import { IUser } from '../models/User';
 
-interface AuthRequest extends Request {
-    user?: string;
-}
 
-export const createDocument = async (req: AuthRequest, res: Response) => {
-    try {
-        const { title } = req.body;
+export async function createDefaultDocument(user: IUser, title: string): Promise<IDocument> {
+    // TODO low prio
+    // We construct a default document here
+    // Instead, we should have some default stored in the database and fall back on an empty document
+    /*
+    <paragraph><italic>Start writing your application here! Once you have a first draft, or whenever you want feedback on your writing, press the MAGIC icon above!</italic></paragraph>
+    */
+    const ydoc = new Y.Doc();
 
-        const ydoc = new Y.Doc();
-        const content = Y.encodeStateAsUpdate(ydoc);
+    const yXmlFragment = ydoc.getXmlFragment('default');
 
-        const document = new DocumentModel({
-            title,
-            content: Buffer.from(content),
-            owner: req.user,
-            users: [req.user],
-        });
+    const paragraph = new Y.XmlElement('paragraph');
+    const textNode = new Y.XmlText();
+    const stringToInsert = 'Start writing your college application cover letter here! Once you have a first draft, or whenever you want feedback on your writing, press the MAGIC button above!'
 
-        await document.save();
-        res.status(201).json( { documentId: document._id });
-    } catch (error) {
-        console.error("Error creating document: ", error);
-        res.status(500).json({ message: 'Internal Server Error'});
-    }
-};
+    textNode.insert(
+        0,
+        stringToInsert + ' ' // space at the end so the end is not italicized and colored
+    );
 
-export const getDocumentTitles = async (req: AuthRequest, res: Response) => {
-    try {
-        const documents = await DocumentModel.find({ owner: req.user });
-        const titles = documents.map((doc) => ({
-            id: doc._id,
-            title: doc.title,
-        }));
-        res.json(titles);
-    } catch (error) {
-        console.error("Error getting document titles: ", error);
-        res.status(500).json({ message: 'Internal Server Error' });
-    }
-};
-
-// TODO we should inform yjs/Hocuspocus that the document has been deleted & it cannot be accessed anymore
-export const deleteDocument = async (req: AuthRequest, res: Response) => {
-    try {
-        const document = await DocumentModel.findOneAndDelete({
-            _id: req.params.id,
-            owner: req.user,
-        });
-        if(!document) {
-            return res.status(404).json({ message: 'Document not found' });
+    textNode.format(0, stringToInsert.length, { italic: {} }); // for some reason textNode.length is 0
+    textNode.format(0, stringToInsert.length, {
+        'textStyle': {
+            color: '#958DF1'
         }
-        res.json({ message: 'Document deleted' });
-    } catch (error) {
-        console.error("Error deleting document: ", error);
-        res.status(500).json({ message: 'Internal Server Error' });
-    }
-};
+    });
+
+    paragraph.push([textNode]);
+    const secondEmptyParagraph = new Y.XmlElement('paragraph');
+
+    yXmlFragment.push([paragraph, secondEmptyParagraph]);
+
+    // add title to ydoc
+    const nameElement = ydoc.getText('name');
+    nameElement.insert(0, title);
+
+    const content = Y.encodeStateAsUpdate(ydoc);
+    // the title is doubled in the data:
+    // once in the ydoc for syncing, and once in the document model for querying
+    // hocuspocus is responsible for syncing the title between the two
+
+    const document = new DocumentModel({
+        title,
+        content: Buffer.from(content),
+        owner: user.id,
+        users: [user.id],
+    });
+
+    return await document.save();
+}

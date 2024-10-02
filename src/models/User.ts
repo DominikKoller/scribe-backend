@@ -7,14 +7,17 @@ export interface IUser extends Document {
     email?: string;
     password?: string;
     isAnonymous: boolean;
+    commentCallsDayLimit: number;
+    documentsLimit: number;
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-// note I do not have a ID field here, because mongoose will automatically add it
 const UserSchema = new Schema<IUser>({
     email: { type: String, unique: true, sparse: true },
     password: { type: String},
     isAnonymous: { type: Boolean, default: false },
+    commentCallsDayLimit: { type: Number },
+    documentsLimit: { type: Number },
 });
 
 UserSchema.pre<IUser>('save', async function (next) {

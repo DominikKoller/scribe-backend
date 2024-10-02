@@ -1,8 +1,8 @@
 // backend/src/apolloServer.ts
 
-import { ApolloServer } from '@apollo/server';
+import { ApolloServer, BaseContext } from '@apollo/server';
 import jwt from 'jsonwebtoken';
-import UserModel from './models/User';
+import UserModel, { IUser } from './models/User';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import typeDefs from './graphql/schema';
 import resolvers from './graphql/resolvers';
@@ -11,7 +11,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 const APOLLO_PORT = process.env.APOLLO_PORT ? parseInt(process.env.APOLLO_PORT) : 4000;
 
-const server = new ApolloServer({
+export interface AuthContext extends BaseContext {
+    user: IUser | null;
+}
+
+const server = new ApolloServer<AuthContext>({
     typeDefs,
     resolvers,
 });
@@ -30,7 +34,7 @@ const startServer = async () => {
     return url;
 };
 
-const getUserFromToken = async (token: string) => {
+async function getUserFromToken(token: string): Promise<IUser | null> {
     try {
         if (!token) {
             return null;

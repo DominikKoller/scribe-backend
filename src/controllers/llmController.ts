@@ -1,15 +1,11 @@
 // controllers/llmController.ts
 
-import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources';
 import hocuspocusServer from '../hocuspocusServer';
 import * as Y from 'yjs';
-
-interface AuthRequest extends Request {
-  user?: string;
-}
+import { ExternalAPICallModel } from '../models/Logs';
 
 // TODO this should be moved to a shared types file
 // it is also on the frontend!
@@ -21,7 +17,7 @@ export interface CommentType {
   pending?: boolean;
 }
 
-export const runLLMOnDocument = async (documentId: string) => {
+export const runLLMOnDocument = async (documentId: string, userId: string) => {
 
   try {
     // Access Yjs document
@@ -138,6 +134,22 @@ In any stage of your feedback, it is very important that you encourage the stude
           tools,
           tool_choice: 'auto',
         });
+
+        /*
+        export interface IExternalAPICall extends Document {
+    userId: Schema.Types.ObjectId;
+    apiName: string;
+    content: string | undefined;
+    response: string | undefined;
+}
+    */
+        const log = new ExternalAPICallModel({
+          userId,
+          apiName: 'OPENAI_COMPLETION',
+          content: JSON.stringify({ model: 'gpt-4o', messages, tools, tool_choice: 'auto' }),
+          response: JSON.stringify(response),
+        });
+        await log.save();
 
         const message = response.choices[0].message;
 

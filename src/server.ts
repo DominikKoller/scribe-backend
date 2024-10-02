@@ -4,9 +4,6 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
-import userRoutes from './routes/userRoutes';
-import documentRoutes from './routes/documentRoutes';
-import llmRoutes from './routes/llmRoutes';
 import hocuspocusServer from './hocuspocusServer';
 import startApolloServer from './apolloServer';
 
@@ -26,25 +23,13 @@ mongoose
         console.error("Error connecting to MongoDB:", error.message);
     });
 
-// express routes
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-app.get('/', (req, res) => {
-    res.send('Server is running');
-});
-
-app.use('/api/users', userRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/llm', llmRoutes);
-
-app.listen(EXPRESS_PORT, () => {
-    console.log(`Express server running on port ${EXPRESS_PORT}`);
-});
-
-hocuspocusServer.listen();
+hocuspocusServer.listen()
+    .then(() => {
+        console.log(`Hocuspocus server running at port ${process.env.HOCUSPOCUS_PORT}`);
+    })
+    .catch((error) => {
+        console.error("Error starting hocuspocus server:", error);
+    });
 
 startApolloServer()
     .then((url) => {
