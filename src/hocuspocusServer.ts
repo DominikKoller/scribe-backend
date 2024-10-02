@@ -73,7 +73,7 @@ const hocuspocusServer = HocuspocusServer.configure({
     },
 
     async onChange(data) {
-        /* IMPLEMENT THIS */
+        /* TODO low prio IMPLEMENT THIS */
         /* IT SHOULD MAKE SURE THE DOCUMENT TITLE IS NOT LONGER THAN 100 CHARACTERS */
     },
 

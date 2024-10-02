@@ -59,18 +59,37 @@ You should give feedback in three stages:
 3) If the student is close to a final draft, you should give let them know whether this essay is likely to give them an advantage in their application or whether they need to focus on more improvements. Tell the student what they did well, and offer incremental improvements where necessary.
 
 
-In any stage of your feedback, it is very important that you encourage the student. Make sure to praise the things they did well, and offer feedback as a potential for improvement. Your feedback should however be concise and to the point. You will be given a list of paragraphs, and you can add a comment to each paragraph of the student's current draft.`,
+In any stage of your feedback, it is very important that you encourage the student. Make sure to praise the things they did well, and offer feedback as a potential for improvement. Your feedback should however be concise and to the point. You will be given a list of paragraphs, and you can add a comment to each paragraph of the student's current draft. You should also add one overall comment on the document.`,
           },
           {
             role: 'user',
             content: `Here is the student's current draft split into paragraphs. Each paragraph has an index number.\n\n${paragraphsWithIndices
               .map((p) => `${p.index}: ${p.text}`)
-              .join('\n')}\n\nHelp the student improve this application letter.\n\nUse the 'add_comments' tool to add your comments to specific paragraphs, referring to them by their index number.`,
+              .join('\n')}\n\nHelp the student improve this application letter.\n\nUse 'add_comment_on_whole_document' to add one overall comment on the document. Use the 'add_comments' tool to add your comments to specific paragraphs, referring to them by their index number.`,
           },
         ];
 
         // Define the tool
         const tools: ChatCompletionTool[] = [
+          {
+            type: 'function',
+            function: {
+              name: 'add_comment_on_whole_document',
+              strict: true,
+              description: 'Adds a comment on the whole document. This is meant for feedback on the document as a whole.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  comment_text: {
+                    type: 'string',
+                    description: 'The text of the comment.',
+                  },
+                },
+                required: ['comment_text'],
+                additionalProperties: false,
+              }
+            }
+          },
           {
             type: 'function',
             function: {
@@ -135,6 +154,10 @@ In any stage of your feedback, it is very important that you encourage the stude
               if (functionName === 'add_comments') {
                 addComments(tiptapYFragment, commentsArray, functionArguments.comments);
               }
+              else if (functionName === 'add_comment_on_whole_document') {
+                console.log('Adding comment on whole document: ', functionArguments.comment_text);
+                addCommentOnWholeDocument(tiptapYFragment, functionArguments.comment_text);
+              }
               else {
                 console.warn('Unknown function name:', functionName);
               }
@@ -192,6 +215,20 @@ function addComment(
 
   // Apply the comment mark to the paragraph
   addCommentMarkToParagraph(tiptapYFragment, paragraphIndex, commentId);
+}
+
+// just adds an italic text to the end of the document, which serves as a an overall 'comment'
+// Has nothing to do with the comment marks or the comments array
+function addCommentOnWholeDocument(tiptapYFragment: Y.XmlFragment, commentText: string) {
+  // add new paragraph to tiptapYFragment
+  const paragraph = new Y.XmlElement('paragraph');
+  const textNode = new Y.XmlText();
+  textNode.insert(0, commentText);
+
+  textNode.format(0, commentText.length, { italic: {} });
+
+  paragraph.push([textNode]);
+  tiptapYFragment.push([paragraph]);
 }
 
 // TODO this is probably inefficient
