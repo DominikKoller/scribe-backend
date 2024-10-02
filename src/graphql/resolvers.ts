@@ -90,13 +90,20 @@ const resolvers = {
  
             textNode.insert(
                 0,
-                stringToInsert
+                stringToInsert+' ' // space at the end so the end is not italicized and colored
             );
 
             textNode.format(0, stringToInsert.length, { italic: {} }); // for some reason textNode.length is 0
+            textNode.format(0, stringToInsert.length, {
+                'textStyle': {
+                  color: '#958DF1'
+                }
+              });
 
             paragraph.push([textNode]);
-            yXmlFragment.push([paragraph]);
+            const secondEmptyParagraph = new Y.XmlElement('paragraph');
+
+            yXmlFragment.push([paragraph, secondEmptyParagraph]);
             
             // add title to ydoc
             const nameElement = ydoc.getText('name');

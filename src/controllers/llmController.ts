@@ -141,8 +141,6 @@ In any stage of your feedback, it is very important that you encourage the stude
 
         const message = response.choices[0].message;
 
-        console.log("Message from OpenAI:", message);
-
         // Handle tool calls
         if (message.tool_calls && message.tool_calls.length > 0) {
           for (const toolCall of message.tool_calls) {
@@ -155,7 +153,6 @@ In any stage of your feedback, it is very important that you encourage the stude
                 addComments(tiptapYFragment, commentsArray, functionArguments.comments);
               }
               else if (functionName === 'add_comment_on_whole_document') {
-                console.log('Adding comment on whole document: ', functionArguments.comment_text);
                 addCommentOnWholeDocument(tiptapYFragment, functionArguments.comment_text);
               }
               else {
@@ -167,7 +164,6 @@ In any stage of your feedback, it is very important that you encourage the stude
         else {
           console.warn('No tool calls in response');
         }
-        console.log("Document updated with comments");
       } catch (error) {
         console.error('Error in runLLMOnDocument:', error);
       }
@@ -221,11 +217,18 @@ function addComment(
 // Has nothing to do with the comment marks or the comments array
 function addCommentOnWholeDocument(tiptapYFragment: Y.XmlFragment, commentText: string) {
   // add new paragraph to tiptapYFragment
+  // with a <span style="color: #958DF1"></span> tag too
   const paragraph = new Y.XmlElement('paragraph');
   const textNode = new Y.XmlText();
   textNode.insert(0, commentText);
 
   textNode.format(0, commentText.length, { italic: {} });
+  textNode.format(0, commentText.length, {
+    'textStyle': {
+      color: '#958DF1'
+    }
+  });
+  
 
   paragraph.push([textNode]);
   tiptapYFragment.push([paragraph]);
