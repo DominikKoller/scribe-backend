@@ -135,14 +135,6 @@ In any stage of your feedback, it is very important that you encourage the stude
           tool_choice: 'auto',
         });
 
-        /*
-        export interface IExternalAPICall extends Document {
-    userId: Schema.Types.ObjectId;
-    apiName: string;
-    content: string | undefined;
-    response: string | undefined;
-}
-    */
         const log = new ExternalAPICallModel({
           userId,
           apiName: 'OPENAI_COMPLETION',

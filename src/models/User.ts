@@ -1,9 +1,9 @@
 // backend/src/models/User.ts
 
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, ObjectId } from "mongoose";
 import bcrypt from "bcrypt";
 
-export interface IUser extends Document {
+export interface IUser extends Document<ObjectId, any, any> {
     email?: string;
     password?: string;
     isAnonymous: boolean;

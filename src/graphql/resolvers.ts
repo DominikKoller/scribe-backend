@@ -26,11 +26,11 @@ const GLOBAL_ANON_USER_LIMIT = process.env.GLOBAL_ANON_USER_LIMIT ? parseInt(pro
 
 const resolvers = {
     Query: {
-        me: async (_: any, __: any, { user }: { user: IUser | null }) => {
+        me: async (_: any, __: any, { user }: AuthContext) => {
             return user; // will also return null, without throwing an error. Can be used to check if the user is authenticated
         },
 
-        documents: async (_: any, __: any, { user }: { user: IUser | null }) => {
+        documents: async (_: any, __: any, { user }: AuthContext) => {
             if (!user) {
                 throw new GraphQLError('Not authenticated', {
                     extensions: {
@@ -38,9 +38,9 @@ const resolvers = {
                     },
                 });
             }
-            const documents = await DocumentModel.find({ owner: user.id });
+            const documents = await DocumentModel.find({ owner: user._id });
             return documents.map((document: any) => ({
-                id: document.id,
+                id: document._id.toString(),
                 title: document.title,
                 createdAt: document.createdAt,
                 updatedAt: document.updatedAt,
@@ -77,14 +77,14 @@ const resolvers = {
             await user.save();
 
             const token = jwt.sign(
-                { userId: user._id },
+                { userId: user._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
                 { expiresIn: '1h' }
             );
             return { token };
         },
         login: async (_: any, { email, password }: { email: string, password: string }) => {
-            const user = await User.findOne({ email });
+            const user: IUser | null = await User.findOne({ email });
             if (!user || !(await user.comparePassword(password))) {
                 throw new GraphQLError('Invalid email or password', {
                     extensions: {
@@ -94,7 +94,7 @@ const resolvers = {
             }
 
             const token = jwt.sign(
-                { userId: user._id },
+                { userId: user._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
                 { expiresIn: '1h' }
             );
@@ -128,14 +128,14 @@ const resolvers = {
             }
 
             const token = jwt.sign(
-                { userId: anonymousUser._id, isAnonymous: true },
+                { userId: anonymousUser._id.toString(), isAnonymous: true },
                 process.env.JWT_SECRET as jwt.Secret,
                 { expiresIn: '1h' }
             );
 
             return { token };
         },
-        createDocument: async (_: any, { title }: { title: string }, { user }: { user: IUser | null }) => {
+        createDocument: async (_: any, { title }: { title: string }, { user }: AuthContext) => {
             if (!user) {
                 throw new GraphQLError('Not authenticated', {
                     extensions: {
@@ -143,7 +143,7 @@ const resolvers = {
                     },
                 });
             }
-            const numDocuments = await DocumentModel.countDocuments({ owner: user.id });
+            const numDocuments = await DocumentModel.countDocuments({ owner: user._id });
             if (numDocuments >= user.documentsLimit) {
                 throw new GraphQLError('Document limit exceeded.', {
                     extensions: {
@@ -155,19 +155,19 @@ const resolvers = {
             const newDocument = await createDefaultDocument(user, title);
 
             const userReturnObj = {
-                id: user.id,
+                id: user._id.toString(),
                 email: user.email,
                 isAnonymous: user.isAnonymous,
             }
 
             return {
-                id: newDocument._id,
+                id: newDocument._id.toString(),
                 title: newDocument.title,
                 owner: userReturnObj,
                 users: [userReturnObj],
             };
         },
-        deleteDocument: async (_: any, { id }: { id: string }, { user }: { user: any }) => {
+        deleteDocument: async (_: any, { id }: { id: string }, { user }: AuthContext) => {
             if (!user) {
                 throw new GraphQLError('Not authenticated', {
                     extensions: {
@@ -178,12 +178,12 @@ const resolvers = {
 
             const deleteResult = await DocumentModel.deleteOne({
                 _id: id,
-                owner: user.id,
+                owner: user._id,
             });
 
             return deleteResult.deletedCount === 1;
         },
-        runLLMOnDocument: async (_: any, { id }: { id: string }, { user }: { user: IUser }) => {
+        runLLMOnDocument: async (_: any, { id }: { id: string }, { user }: AuthContext) => {
             if (!user) {
                 throw new GraphQLError('Not authenticated', {
                     extensions: {
@@ -262,7 +262,7 @@ const resolvers = {
                 {
                     $match: {
                         createdAt: { $gte: yesterday },
-                        userId: user.id,
+                        userId: user._id,
                     }
                 },
                 {
@@ -281,7 +281,7 @@ const resolvers = {
 
             const log = new UserCommentCallModel({
                 documentId: id,
-                userId: user.id,
+                userId: user._id,
             });
             await log.save();
 

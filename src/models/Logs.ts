@@ -1,9 +1,9 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, ObjectId } from 'mongoose';
 
 // maybe we should make this IInternalAPICall ?
 // but we only really need this for the user comment call..
 // TODO think about this
-export interface IUserCommentCall extends Document {
+export interface IUserCommentCall extends Document<ObjectId, any, any> {
     documentId: Schema.Types.ObjectId;
     userId: Schema.Types.ObjectId;
 }
@@ -15,7 +15,7 @@ const UserCommentCallSchema = new Schema<IUserCommentCall>({
 
 export const UserCommentCallModel = model<IUserCommentCall>('UserCommentCall', UserCommentCallSchema);
 
-export interface IExternalAPICall extends Document {
+export interface IExternalAPICall extends Document<ObjectId, any, any> {
     userId: Schema.Types.ObjectId;
     apiName: string;
     content: string | undefined;

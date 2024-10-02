@@ -50,8 +50,8 @@ export async function createDefaultDocument(user: IUser, title: string): Promise
     const document = new DocumentModel({
         title,
         content: Buffer.from(content),
-        owner: user.id,
-        users: [user.id],
+        owner: user._id,
+        users: [user._id],
     });
 
     return await document.save();
