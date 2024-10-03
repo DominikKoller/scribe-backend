@@ -11,15 +11,23 @@ dotenv.config();
 
 const EXPRESS_PORT = process.env.EXPRESS_PORT ? parseInt(process.env.EXPRESS_PORT) : 3000;
 
+
+const MONGO_HOST = process.env.MONGO_HOST || 'localhost';
+const MONGO_PORT = process.env.MONGO_PORT || '27017';
+const MONGO_DB = process.env.MONGO_DB || 'scribe';
+const MONGO_USERNAME = process.env.MONGO_USERNAME || '';
+const MONGO_PASSWORD = process.env.MONGO_PASSWORD || '';
+
+const mongoUrl = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
+
 mongoose
-    .connect(process.env.MONGODB_URI || "", {
+    .connect(mongoUrl || "", {
         autoIndex: true,
     })
     .then(() => {
-        console.log("Connected to MongoDB");
+        console.log("Connected to MongoDB via: ", mongoUrl);
     })
     .catch((error) => {
-        console.log("MongoDB URI:", process.env.MONGODB_URI);
         console.error("Error connecting to MongoDB:", error.message);
     });
 
