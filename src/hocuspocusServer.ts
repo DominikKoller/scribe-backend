@@ -5,22 +5,11 @@ import jwt from 'jsonwebtoken';
 import DocumentModel from './models/Document';
 import User from './models/User';
 import * as Y from 'yjs';
-import dotenv from 'dotenv';
-
-// TODO put this in a types file
-// TODO unify authentication between Hocuspocus and Apollo
-interface DecodedToken {
-    userId: string;
-}
-
-dotenv.config();
-
-const HOCUSPOCUS_PORT = process.env.HOCUSPOCUS_PORT ? parseInt(process.env.HOCUSPOCUS_PORT) : 3001;
 
 const hocuspocusServer = HocuspocusServer.configure({
-    port: HOCUSPOCUS_PORT,
-
     async onAuthenticate(data) {
+        console.log("onAuthenticate data:", data);
+        /*
         const { token } = data;
 
         if (!token) {
@@ -41,6 +30,7 @@ const hocuspocusServer = HocuspocusServer.configure({
         } catch (error) {
             throw new Error('Unauthorized'); // invalid token
         }
+        */
     },
 
     async onLoadDocument(data) {
