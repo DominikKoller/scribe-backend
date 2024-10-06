@@ -7,15 +7,9 @@ import User from './models/User';
 import * as Y from 'yjs';
 
 const hocuspocusServer = HocuspocusServer.configure({
-    async onConnect(data) {
-        console.log('ON CONNECT ');
-    },
-
     async onAuthenticate(data) {
-        console.log("onAuthenticate");
-
+        console.log("onAuthenticate data:", data);
         /*
-        OLD TOKEN AUTH. WAS REPLACED BY SESSION AUTH.
         const { token } = data;
 
         if (!token) {
@@ -40,7 +34,6 @@ const hocuspocusServer = HocuspocusServer.configure({
     },
 
     async onLoadDocument(data) {
-        console.log('onLoadDocument data:', data);
         const { documentName, context } = data;
         const documentId = documentName;
 
@@ -69,15 +62,12 @@ const hocuspocusServer = HocuspocusServer.configure({
         return ydoc;
     },
 
-    /* TODO IMPLEMENT THIS
-    IT SHOULD MAKE SURE THE DOCUMENT TITLE IS NOT LONGER THAN 100 CHARACTERS
     async onChange(data) {
-        console.log("on change");
+        /* TODO low prio IMPLEMENT THIS */
+        /* IT SHOULD MAKE SURE THE DOCUMENT TITLE IS NOT LONGER THAN 100 CHARACTERS */
     },
-    */
 
     async onStoreDocument(data) {
-        console.log("on store document");
         const { documentName, document, context } = data;
 
         const isFromServer = context && context.isFromServer;
