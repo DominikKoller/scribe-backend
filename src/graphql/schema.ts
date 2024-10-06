@@ -16,15 +16,20 @@ const typeDefs = `#graphql
         updatedAt: DateTime!
     }
 
+    # could be more later on
+    type AuthPayload {
+        token: String!
+    }
+
     type Query {
-        me: User
+        me: User!
         documents: [Document!]!
     }
 
     type Mutation {
-        register(email: String!, password: String!): User!
-        login(email: String!, password: String!): User!
-        anonymousLogin: User!
+        register(email: String!, password: String!): AuthPayload!
+        login(email: String!, password: String!): AuthPayload!
+        anonymousLogin: AuthPayload!
         createDocument(title: String!): Document!
         deleteDocument(id: ID!): Boolean!
         runLLMOnDocument(id: ID!): Boolean!

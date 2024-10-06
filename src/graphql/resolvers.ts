@@ -6,8 +6,7 @@ import { runLLMOnDocument as runLLM } from '../controllers/llmController';
 import { UserCommentCallModel } from '../models/Logs';
 import { createDefaultDocument } from '../controllers/documentController';
 import { GraphQLError } from 'graphql';
-import { AuthContext, AuthRequest, AuthSession } from '../server'
-import session from 'express-session';
+import { AuthContext } from '../apolloServer';
 
 // THIS FILE HANDLES ALL AUTHORIZATION AND RESOURCE ACCESS CONTROL
 // When business logic is small enough, it can be handled here too
@@ -49,7 +48,7 @@ const resolvers = {
         },
     },
     Mutation: {
-        register: async (_: any, { email, password }: { email: string, password: string }, { session }: AuthContext) => {
+        register: async (_: any, { email, password }: { email: string, password: string }) => {
             if (await User.exists({ email })) {
                 throw new GraphQLError('Email already in use', {
                     extensions: {
@@ -69,24 +68,22 @@ const resolvers = {
 
             // TODO validate password strength
             // TODO validate email, at least as a valid email address but actually with a sent link
-            const user = new User({
-                email,
-                password,
+            const user = new User({ 
+                email, 
+                password, 
                 commentCallsDayLimit: USER_COMMENT_CALL_DAY_LIMIT,
                 documentsLimit: USER_DOC_LIMIT
             });
             await user.save();
 
-            session.userId = user._id.toString();
-            return {
-                user: {
-                    id: user._id.toString(),
-                    email: user.email,
-                    isAnonymous: user.isAnonymous,
-                }
-            }
+            const token = jwt.sign(
+                { userId: user._id.toString() },
+                process.env.JWT_SECRET as jwt.Secret,
+                { expiresIn: '1h' }
+            );
+            return { token };
         },
-        login: async (_: any, { email, password }: { email: string, password: string }, { session }: AuthContext) => {
+        login: async (_: any, { email, password }: { email: string, password: string }) => {
             const user: IUser | null = await User.findOne({ email });
             if (!user || !(await user.comparePassword(password))) {
                 throw new GraphQLError('Invalid email or password', {
@@ -96,18 +93,22 @@ const resolvers = {
                 });
             }
 
-            session.userId = user._id.toString();
+            const token = jwt.sign(
+                { userId: user._id.toString() },
+                process.env.JWT_SECRET as jwt.Secret,
+                { expiresIn: '1h' }
+            );
 
-            return {
-                user: {
-                    id: user._id.toString(),
-                    email: user.email,
-                    isAnonymous: user.isAnonymous,
-                }
-            }
+            return { token };
         },
-        anonymousLogin: async (_: any, __: any, { session }: AuthContext) => {
-            console.log("ANONYMOUS LOGIN");
+        anonymousLogin: async () => {
+            const anonymousUser = new User({ 
+                isAnonymous: true,
+                commentCallsDayLimit: ANON_USER_COMMENT_CALL_DAY_LIMIT,
+                documentsLimit: ANON_USER_DOC_LIMIT,
+            });
+            await anonymousUser.save();
+
             const userCount = await User.countDocuments();
             if (userCount >= GLOBAL_USER_LIMIT) {
                 throw new GraphQLError('User limit exceeded.', {
@@ -126,21 +127,13 @@ const resolvers = {
                 });
             }
 
-            const anonymousUser = new User({
-                isAnonymous: true,
-                commentCallsDayLimit: ANON_USER_COMMENT_CALL_DAY_LIMIT,
-                documentsLimit: ANON_USER_DOC_LIMIT,
-            });
-            await anonymousUser.save();
+            const token = jwt.sign(
+                { userId: anonymousUser._id.toString(), isAnonymous: true },
+                process.env.JWT_SECRET as jwt.Secret,
+                { expiresIn: '1h' }
+            );
 
-            session.userId = anonymousUser._id.toString();
-            console.log("setting session cookie userId: ", session.userId);
-
-            return {
-                id: anonymousUser._id.toString(),
-                email: anonymousUser.email,
-                isAnonymous: anonymousUser.isAnonymous,
-            }
+            return { token };
         },
         createDocument: async (_: any, { title }: { title: string }, { user }: AuthContext) => {
             if (!user) {

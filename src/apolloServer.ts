@@ -8,13 +8,12 @@ import typeDefs from './graphql/schema';
 import resolvers from './graphql/resolvers';
 import dotenv from 'dotenv';
 
-// OLD CODE
-/*
-
 dotenv.config();
 const APOLLO_PORT = process.env.APOLLO_PORT ? parseInt(process.env.APOLLO_PORT) : 4000;
 
-
+export interface AuthContext extends BaseContext {
+    user: IUser | null;
+}
 
 const server = new ApolloServer<AuthContext>({
     typeDefs,
@@ -49,5 +48,3 @@ async function getUserFromToken(token: string): Promise<IUser | null> {
 }
 
 export default startServer;
-
-*/
