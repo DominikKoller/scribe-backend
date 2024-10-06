@@ -11,7 +11,6 @@ dotenv.config();
 
 const EXPRESS_PORT = process.env.EXPRESS_PORT ? parseInt(process.env.EXPRESS_PORT) : 3000;
 
-
 const MONGO_HOST = process.env.MONGO_HOST || 'localhost';
 const MONGO_PORT = process.env.MONGO_PORT || '27017';
 const MONGO_DB = process.env.MONGO_DB || 'scribe';

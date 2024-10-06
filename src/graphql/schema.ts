@@ -1,3 +1,4 @@
+// backend/src/graphql/schema.ts
 const typeDefs = `#graphql
     scalar DateTime
 
@@ -16,9 +17,9 @@ const typeDefs = `#graphql
         updatedAt: DateTime!
     }
 
-    # could be more later on
     type AuthPayload {
-        token: String!
+        accessToken: String!
+        refreshToken: String!
     }
 
     type Query {
@@ -30,6 +31,7 @@ const typeDefs = `#graphql
         register(email: String!, password: String!): AuthPayload!
         login(email: String!, password: String!): AuthPayload!
         anonymousLogin: AuthPayload!
+        refresh(refreshToken: String!): AuthPayload!
         createDocument(title: String!): Document!
         deleteDocument(id: ID!): Boolean!
         runLLMOnDocument(id: ID!): Boolean!

@@ -25,6 +25,7 @@ const startServer = async () => {
         context: async ({ req }) => {
             const authHeader = req.headers.authorization || '';
             const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+            console.log("TOKEN: ", token);
             const user = await getUserFromToken(token || '');
             return { user };
         },

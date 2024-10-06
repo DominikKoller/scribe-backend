@@ -2,6 +2,7 @@
 import DocumentModel from '../models/Document'
 import User, { IUser } from '../models/User';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { runLLMOnDocument as runLLM } from '../controllers/llmController';
 import { UserCommentCallModel } from '../models/Logs';
 import { createDefaultDocument } from '../controllers/documentController';
@@ -24,10 +25,13 @@ const GLOBAL_ANON_COMMENT_CALL_DAY_LIMIT = process.env.GLOBAL_ANON_COMMENT_CALL_
 const GLOBAL_USER_LIMIT = process.env.GLOBAL_USER_LIMIT ? parseInt(process.env.GLOBAL_USER_LIMIT) : 1000;
 const GLOBAL_ANON_USER_LIMIT = process.env.GLOBAL_ANON_USER_LIMIT ? parseInt(process.env.GLOBAL_ANON_USER_LIMIT) : 1000;
 
+// in-memory store for refresh tokens
+const refreshTokens = new Map<string, string>();
+
 const resolvers = {
     Query: {
         me: async (_: any, __: any, { user }: AuthContext) => {
-            return user; // will also return null, without throwing an error. Can be used to check if the user is authenticated
+            return user || null; // will also return null, without throwing an error. Can be used to check if the user is authenticated
         },
 
         documents: async (_: any, __: any, { user }: AuthContext) => {
@@ -49,6 +53,7 @@ const resolvers = {
     },
     Mutation: {
         register: async (_: any, { email, password }: { email: string, password: string }) => {
+            console.log("REGISTER");
             if (await User.exists({ email })) {
                 throw new GraphQLError('Email already in use', {
                     extensions: {
@@ -76,14 +81,19 @@ const resolvers = {
             });
             await user.save();
 
-            const token = jwt.sign(
+            const accessToken = jwt.sign(
                 { userId: user._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
-                { expiresIn: '1h' }
+                { expiresIn: '6m' }
             );
-            return { token };
+
+            const refreshToken = crypto.randomBytes(64).toString('hex');
+            refreshTokens.set(refreshToken, user._id.toString());
+
+            return { accessToken, refreshToken };
         },
         login: async (_: any, { email, password }: { email: string, password: string }) => {
+            console.log("LOGIN");
             const user: IUser | null = await User.findOne({ email });
             if (!user || !(await user.comparePassword(password))) {
                 throw new GraphQLError('Invalid email or password', {
@@ -93,22 +103,19 @@ const resolvers = {
                 });
             }
 
-            const token = jwt.sign(
+            const accessToken = jwt.sign(
                 { userId: user._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
-                { expiresIn: '1h' }
+                { expiresIn: '6m' }
             );
 
-            return { token };
+            const refreshToken = crypto.randomBytes(64).toString('hex');
+            refreshTokens.set(refreshToken, user._id.toString());
+
+            return { accessToken, refreshToken };
         },
         anonymousLogin: async () => {
-            const anonymousUser = new User({ 
-                isAnonymous: true,
-                commentCallsDayLimit: ANON_USER_COMMENT_CALL_DAY_LIMIT,
-                documentsLimit: ANON_USER_DOC_LIMIT,
-            });
-            await anonymousUser.save();
-
+            console.log("ANONYMOUS LOGIN");
             const userCount = await User.countDocuments();
             if (userCount >= GLOBAL_USER_LIMIT) {
                 throw new GraphQLError('User limit exceeded.', {
@@ -127,13 +134,47 @@ const resolvers = {
                 });
             }
 
-            const token = jwt.sign(
-                { userId: anonymousUser._id.toString(), isAnonymous: true },
+            const anonymousUser = new User({ 
+                isAnonymous: true,
+                commentCallsDayLimit: ANON_USER_COMMENT_CALL_DAY_LIMIT,
+                documentsLimit: ANON_USER_DOC_LIMIT,
+            });
+            await anonymousUser.save();
+
+            const accessToken = jwt.sign(
+                { userId: anonymousUser._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
-                { expiresIn: '1h' }
+                { expiresIn: '6m' }
             );
 
-            return { token };
+            const refreshToken = crypto.randomBytes(64).toString('hex');
+            refreshTokens.set(refreshToken, anonymousUser._id.toString());
+
+            return { accessToken, refreshToken };
+        },
+        refresh: async (_: any, { refreshToken }: { refreshToken: string }) => {
+            console.log("REFRESH. REFRESH TOKEN: ", refreshToken);
+            const userId = refreshTokens.get(refreshToken);
+            console.log("USER ID: ", userId);
+            if (!userId) {
+                throw new GraphQLError('Invalid refresh token', {
+                    extensions: {
+                        code: 'INVALID_REFRESH_TOKEN',
+                    },
+                });
+            }
+            refreshTokens.delete(refreshToken);
+
+            const accessToken = jwt.sign(
+                { userId },
+                process.env.JWT_SECRET as jwt.Secret,
+                { expiresIn: '6m' }
+            );
+
+            const newRefreshToken = crypto.randomBytes(64).toString('hex');
+            refreshTokens.set(newRefreshToken, userId);
+
+            return { accessToken, refreshToken: newRefreshToken };
         },
         createDocument: async (_: any, { title }: { title: string }, { user }: AuthContext) => {
             if (!user) {
