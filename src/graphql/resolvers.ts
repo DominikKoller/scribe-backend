@@ -28,14 +28,7 @@ const GLOBAL_ANON_USER_LIMIT = process.env.GLOBAL_ANON_USER_LIMIT ? parseInt(pro
 const resolvers = {
     Query: {
         me: async (_: any, __: any, { user }: AuthContext) => {
-            if (user) {
-                return {
-                    id: user._id.toString(),
-                    email: user.email,
-                    isAnonymous: user.isAnonymous,
-                };
-            }
-            return null;
+            return user; // will also return null, without throwing an error. Can be used to check if the user is authenticated
         },
 
         documents: async (_: any, __: any, { user }: AuthContext) => {
@@ -104,6 +97,7 @@ const resolvers = {
             }
 
             session.userId = user._id.toString();
+
             return {
                 user: {
                     id: user._id.toString(),
@@ -113,6 +107,7 @@ const resolvers = {
             }
         },
         anonymousLogin: async (_: any, __: any, { session }: AuthContext) => {
+            console.log("ANONYMOUS LOGIN");
             const userCount = await User.countDocuments();
             if (userCount >= GLOBAL_USER_LIMIT) {
                 throw new GraphQLError('User limit exceeded.', {
@@ -139,6 +134,8 @@ const resolvers = {
             await anonymousUser.save();
 
             session.userId = anonymousUser._id.toString();
+            console.log("setting session cookie userId: ", session.userId);
+
             return {
                 id: anonymousUser._id.toString(),
                 email: anonymousUser.email,

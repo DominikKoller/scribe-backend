@@ -69,7 +69,7 @@ app.set('trust proxy', 1);
 app.use(cors({
     origin: (origin, callback) => { return callback(null, origin); }, // TODO this is insecure. Basically '*' but allows credentials
     credentials: true
-}));
+  }));
 
 app.use(express.json());
 
@@ -96,12 +96,11 @@ app.use(session({
         collectionName: 'sessions',
     }),
     cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 5, // 5 days
+        maxAge: 1000 * 60 * 60 * 24, // 1 day
         secure: true, // must use HTTPS in order to allow samesite none cookies
         sameSite: 'none', // cross site cookies. TODO tighten this setting
         httpOnly: true,
-    },
-    rolling: true, // reset maxAge on every request
+    }
 }));
 
 const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
