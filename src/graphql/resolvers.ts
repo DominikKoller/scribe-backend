@@ -26,6 +26,7 @@ const GLOBAL_USER_LIMIT = process.env.GLOBAL_USER_LIMIT ? parseInt(process.env.G
 const GLOBAL_ANON_USER_LIMIT = process.env.GLOBAL_ANON_USER_LIMIT ? parseInt(process.env.GLOBAL_ANON_USER_LIMIT) : 1000;
 
 // in-memory store for refresh tokens
+// TODO a log out route should delete the refresh token
 const refreshTokens = new Map<string, string>();
 
 const resolvers = {
@@ -83,7 +84,7 @@ const resolvers = {
             const accessToken = jwt.sign(
                 { userId: user._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
-                { expiresIn: '6m' }
+                { expiresIn: '1h' }
             );
 
             const refreshToken = crypto.randomBytes(64).toString('hex');
@@ -104,7 +105,7 @@ const resolvers = {
             const accessToken = jwt.sign(
                 { userId: user._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
-                { expiresIn: '6m' }
+                { expiresIn: '1h' }
             );
 
             const refreshToken = crypto.randomBytes(64).toString('hex');
@@ -141,7 +142,7 @@ const resolvers = {
             const accessToken = jwt.sign(
                 { userId: anonymousUser._id.toString() },
                 process.env.JWT_SECRET as jwt.Secret,
-                { expiresIn: '6m' }
+                { expiresIn: '1h' }
             );
 
             const refreshToken = crypto.randomBytes(64).toString('hex');
@@ -163,7 +164,7 @@ const resolvers = {
             const accessToken = jwt.sign(
                 { userId },
                 process.env.JWT_SECRET as jwt.Secret,
-                { expiresIn: '6m' }
+                { expiresIn: '1h' }
             );
 
             const newRefreshToken = crypto.randomBytes(64).toString('hex');
