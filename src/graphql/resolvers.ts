@@ -53,7 +53,7 @@ const resolvers = {
         },
     },
     Mutation: {
-        register: async (_: any, { email, password }: { email: string, password: string }) => {
+        register: async (_: any, { email, name, password }: { email: string, name: string, password: string }) => {
             if (await User.exists({ email })) {
                 throw new GraphQLError('Email already in use', {
                     extensions: {
@@ -75,6 +75,7 @@ const resolvers = {
             // TODO validate email, at least as a valid email address but actually with a sent link
             const user = new User({ 
                 email, 
+                name,
                 password, 
                 commentCallsDayLimit: USER_COMMENT_CALL_DAY_LIMIT,
                 documentsLimit: USER_DOC_LIMIT
@@ -132,8 +133,32 @@ const resolvers = {
                 });
             }
 
+            // GENERATE NAME
+            const mathTerms = [
+                "Algebraic", "Geometric", "Euclidean", "Polynomial", "Logarithmic",
+                "Trigonometric", "Differential", "Integral", "Exponential", "Quadratic",
+                "Hyperbolic", "Elliptic", "Parabolic", "Discrete", "Continuous",
+                "Stochastic", "Topological", "Fractal", "Asymptotic", "Combinatorial",
+                "Cartesian", "Quaternion", "Fibonacci", "Prime", "Irrational",
+                "Factorial", "Matrices", "Vector", "Tensor", "Imaginary"
+            ];
+            
+            const animals = [
+                "Aardvark", "Penguin", "Elephant", "Kangaroo", "Platypus",
+                "Octopus", "Giraffe", "Chinchilla", "Hedgehog", "Koala",
+                "Narwhal", "Axolotl", "Lemur", "Flamingo", "Pangolin",
+                "Wombat", "Capybara", "Quokka", "Sloth", "Echidna",
+                "Manatee", "Armadillo", "Ocelot", "Tapir", "Dugong",
+                "Meerkat", "Alpaca", "Fennec", "Numbat", "Okapi"
+            ];
+
+            const randomMathTerm = mathTerms[Math.floor(Math.random() * mathTerms.length)];
+            const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+            const randomName = `${randomMathTerm} ${randomAnimal}`;
+
             const anonymousUser = new User({ 
                 isAnonymous: true,
+                name: randomName,
                 commentCallsDayLimit: ANON_USER_COMMENT_CALL_DAY_LIMIT,
                 documentsLimit: ANON_USER_DOC_LIMIT,
             });

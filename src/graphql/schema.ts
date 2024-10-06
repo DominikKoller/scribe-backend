@@ -5,6 +5,7 @@ const typeDefs = `#graphql
     type User {
         id: ID!
         email: String
+        name: String!
         isAnonymous: Boolean!
     }
 
@@ -28,7 +29,7 @@ const typeDefs = `#graphql
     }
 
     type Mutation {
-        register(email: String!, password: String!): AuthPayload!
+        register(email: String!, name: String!, password: String!): AuthPayload!
         login(email: String!, password: String!): AuthPayload!
         anonymousLogin: AuthPayload!
         refresh(refreshToken: String!): AuthPayload!

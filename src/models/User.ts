@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 
 export interface IUser extends Document<ObjectId, any, any> {
     email?: string;
+    name: string; // will be set randomly for anonymous users
     password?: string;
     refreshTokens: string[];
     isAnonymous: boolean;
@@ -15,6 +16,7 @@ export interface IUser extends Document<ObjectId, any, any> {
 
 const UserSchema = new Schema<IUser>({
     email: { type: String, unique: true, sparse: true },
+    name: { type: String, required: true },
     password: { type: String},
     refreshTokens: { type: [String], default: [] },
     isAnonymous: { type: Boolean, default: false },
