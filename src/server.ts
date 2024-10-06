@@ -105,7 +105,6 @@ app.use(session({
 }));
 
 const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    console.log("AUTH. session:", req.session);
     if (req.session.userId) {
         const user = await User.findById(req.session.userId);
         if (user) {
@@ -144,13 +143,15 @@ const apolloServer = new ApolloServer({
     }));
 
     app.ws('/hocuspocus', (ws, req: AuthRequest) => {
-        console.log("HOCUSPOCUS websocket. req.user: ", req.user);
 
+        console.log("on hocuspocus connection. Session: ", req.session);
         const context = {
             user: req.user,
         }
 
+        console.log("calling hocuspocusServer.handleConnection");
         hocuspocusServer.handleConnection(ws, req, context);
+        console.log("called hocuspocusServer.handleConnection");
     })
 
     app.listen(EXPRESS_PORT, () => {
