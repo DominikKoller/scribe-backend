@@ -47,8 +47,6 @@ const hocuspocusServer = HocuspocusServer.configure({
         const { documentName, context } = data;
         const documentId = documentName;
 
-        console.log('onLoadDocument context:', context);
-
         const isFromServer = context && context.isFromServer; // note when the document is first loaded, it may also be loaded from the server, but it does not happen often
         const userId = context?.userId;
         if (!userId && !isFromServer) {
@@ -67,8 +65,6 @@ const hocuspocusServer = HocuspocusServer.configure({
 
         const ydoc = new Y.Doc();
         Y.applyUpdate(ydoc, doc.content);
-
-        // console.log('Loaded document:', ydoc.getXmlFragment('default').toJSON());
         return ydoc;
     },
 

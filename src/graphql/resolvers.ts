@@ -53,7 +53,6 @@ const resolvers = {
     },
     Mutation: {
         register: async (_: any, { email, password }: { email: string, password: string }) => {
-            console.log("REGISTER");
             if (await User.exists({ email })) {
                 throw new GraphQLError('Email already in use', {
                     extensions: {
@@ -93,7 +92,6 @@ const resolvers = {
             return { accessToken, refreshToken };
         },
         login: async (_: any, { email, password }: { email: string, password: string }) => {
-            console.log("LOGIN");
             const user: IUser | null = await User.findOne({ email });
             if (!user || !(await user.comparePassword(password))) {
                 throw new GraphQLError('Invalid email or password', {
@@ -115,7 +113,6 @@ const resolvers = {
             return { accessToken, refreshToken };
         },
         anonymousLogin: async () => {
-            console.log("ANONYMOUS LOGIN");
             const userCount = await User.countDocuments();
             if (userCount >= GLOBAL_USER_LIMIT) {
                 throw new GraphQLError('User limit exceeded.', {
@@ -153,9 +150,7 @@ const resolvers = {
             return { accessToken, refreshToken };
         },
         refresh: async (_: any, { refreshToken }: { refreshToken: string }) => {
-            console.log("REFRESH. REFRESH TOKEN: ", refreshToken);
             const userId = refreshTokens.get(refreshToken);
-            console.log("USER ID: ", userId);
             if (!userId) {
                 throw new GraphQLError('Invalid refresh token', {
                     extensions: {
