@@ -135,6 +135,9 @@ In any stage of your feedback, it is very important that you encourage the stude
           tool_choice: 'auto',
         });
 
+        console.log('OpenAI response:', response);
+        console.log("MESSAGE: ", JSON.stringify(response.choices[0].message, null, 2));
+
         const log = new ExternalAPICallModel({
           userId,
           apiName: 'OPENAI_COMPLETION',

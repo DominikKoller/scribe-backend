@@ -4,7 +4,6 @@ import DocumentSnapshotModel from '../models/DocumentSnapshot';
 import Y from 'yjs';
 
 export async function createDocumentSnapshot(documentId: string) {
-
     const document = await DocumentModel.findById(documentId);
 
     if (!document) {
@@ -28,36 +27,38 @@ export async function createDocumentSnapshot(documentId: string) {
         commentsMap.set(comment.id, comment.text);
     }
 
-    // Function to extract text content and comment positions
-    function extractTextAndComments(node: Y.XmlElement | Y.XmlFragment): { textContent: string, comments: { position: { start: number, end: number }, text: string }[] } {
-        let textContent = '';
-        let comments: { position: { start: number, end: number }, text: string }[] = [];
-        let currentPosition = 0;
+    // Function to extract paragraphs and comments with paragraph indices
+    function extractParagraphsAndComments(node: Y.XmlElement | Y.XmlFragment): { paragraphs: string[], comments: { paragraph_index: number, comment_text: string }[] } {
+        let paragraphs: string[] = [];
+        let comments: { paragraph_index: number, comment_text: string }[] = [];
+        let currentParagraphIndex = -1;
 
         function traverse(node: Y.XmlElement | Y.XmlFragment) {
             for (const child of node.toArray()) {
                 if (child instanceof Y.XmlText) {
                     const delta = child.toDelta();
+                    let paragraphContent = '';
                     for (const op of delta) {
                         const insertText = op.insert;
-                        const length = insertText.length;
 
                         if (op.attributes && op.attributes.comment) {
                             const commentId = op.attributes.comment.commentId;
                             const commentText = commentsMap.get(commentId) || '';
                             comments.push({
-                                position: {
-                                    start: currentPosition,
-                                    end: currentPosition + length
-                                },
-                                text: commentText
+                                paragraph_index: currentParagraphIndex,
+                                comment_text: commentText
                             });
                         }
 
-                        textContent += insertText;
-                        currentPosition += length;
+                        paragraphContent += insertText;
                     }
+
+                    paragraphs.push(paragraphContent);
+                    
                 } else if (child instanceof Y.XmlElement || child instanceof Y.XmlFragment) {
+                    if (child.nodeName === 'paragraph') {
+                        currentParagraphIndex++;
+                    }
                     traverse(child);
                 }
             }
@@ -65,23 +66,16 @@ export async function createDocumentSnapshot(documentId: string) {
 
         traverse(node);
 
-        return { textContent, comments };
+        return { paragraphs, comments };
     }
 
-    const { textContent, comments } = extractTextAndComments(yXmlFragment);
-
-    console.log("NEW SNAPSHOT: ", textContent, comments);
-
-    /*
+    const { paragraphs, comments } = extractParagraphsAndComments(yXmlFragment);
 
     const snapshot = new DocumentSnapshotModel({
         documentId: document._id,
         title: document.title,
-        documentContent: textContent,
-        comments,
+        paragraphs: paragraphs, // paragraphs array
+        comments: comments, // comments with paragraph indices
     });
-
     await snapshot.save();
-
-    */
 }
