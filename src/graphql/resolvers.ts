@@ -1,5 +1,5 @@
 // backend/src/graphql/resolvers.ts
-import DocumentModel from '../models/Document'
+import DocumentModel, { IDocument } from '../models/Document'
 import User, { IUser } from '../models/User';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -8,7 +8,7 @@ import { UserCommentCallModel } from '../models/Logs';
 import { createDefaultDocument } from '../controllers/documentController';
 import { GraphQLError } from 'graphql';
 import { AuthContext } from '../apolloServer';
-import { Types } from 'mongoose';
+import { createDocumentSnapshot as createDocumentSnapshotController } from '../controllers/snapshotController';
 
 // THIS FILE HANDLES ALL AUTHORIZATION AND RESOURCE ACCESS CONTROL
 // When business logic is small enough, it can be handled here too
@@ -62,15 +62,17 @@ const resolvers = {
                 updatedAt: document.updatedAt,
                 owner: {
                     id: document.owner._id.toString(),
-                    email: document.email,
+                    email: document.owner.email,
                     name: document.owner.name,
-                    isAnonymous: document.isAnonymous,
+                    isAnonymous: document.owner.isAnonymous,
+                    roles: document.owner.roles,
                 },
                 users: document.users.map((user: any) => ({
                     id: user._id.toString(),
                     email: user.email,
                     name: user.name,
                     isAnonymous: user.isAnonymous,
+                    roles: user.roles,
                 }))
             }));
         },
@@ -103,6 +105,12 @@ const resolvers = {
                 commentCallsDayLimit: USER_COMMENT_CALL_DAY_LIMIT,
                 documentsLimit: USER_DOC_LIMIT
             });
+
+            // TODO BUILD ROLES SYSTEM
+            // this currently just gives admin rights to me
+            if (email === 'mail@dominikkoller.com') {
+                user.roles = ['admin'];
+            }
             await user.save();
 
             const accessToken = jwt.sign(
@@ -243,6 +251,8 @@ const resolvers = {
                 id: user._id.toString(),
                 email: user.email,
                 isAnonymous: user.isAnonymous,
+                name: user.name,
+                roles: user.roles,
             }
 
             return {
@@ -407,6 +417,21 @@ const resolvers = {
             await log.save();
 
             return await runLLM(id, user.id);
+        },
+
+        // THIS METHOD IS A FIRST START OF INFRASTRUCTURE TO COLLECT A FINE-TUNING DATASET
+        async createDocumentSnapshot(_: any, { documentId }: { documentId: string }, { user }: AuthContext) {
+            if(!user || !user.roles.includes('admin')) {
+                throw new GraphQLError('Not authenticated', {
+                    extensions: {
+                        code: 'UNAUTHENTICATED',
+                    },
+                });
+            }
+
+            await createDocumentSnapshotController(documentId);
+
+            return true;
         }
     }
 };

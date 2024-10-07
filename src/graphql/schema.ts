@@ -7,6 +7,7 @@ const typeDefs = `#graphql
         email: String
         name: String!
         isAnonymous: Boolean!
+        roles: [String!]!
     }
 
     type Document {
@@ -37,6 +38,7 @@ const typeDefs = `#graphql
         deleteDocument(id: ID!): Boolean!
         inviteUserToDocument(documentId: ID!, email: String!): Boolean!
         runLLMOnDocument(id: ID!): Boolean!
+        createDocumentSnapshot(documentId: ID!): Boolean!
     }
 `;
 

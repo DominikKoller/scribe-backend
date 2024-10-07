@@ -7,6 +7,7 @@ export interface IUser extends Document<Types.ObjectId, any, any> {
     email?: string;
     name: string; // will be set randomly for anonymous users
     password?: string;
+    roles: string[];
     refreshTokens: string[];
     isAnonymous: boolean;
     commentCallsDayLimit: number;
@@ -18,6 +19,7 @@ const UserSchema = new Schema<IUser>({
     email: { type: String, unique: true, sparse: true },
     name: { type: String, required: true },
     password: { type: String},
+    roles: { type: [String], default: [], required: true },
     refreshTokens: { type: [String], default: [] },
     isAnonymous: { type: Boolean, default: false },
     commentCallsDayLimit: { type: Number },

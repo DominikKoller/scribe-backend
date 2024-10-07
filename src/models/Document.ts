@@ -1,8 +1,8 @@
 // backend/src/models/Document.ts
 
-import { Schema, model, Document as MDocument, Types, ObjectId } from 'mongoose';
+import { Schema, model, Document as MDocument, Types } from 'mongoose';
 
-export interface IDocument extends MDocument<ObjectId, any, any> {
+export interface IDocument extends MDocument<Types.ObjectId, any, any> {
     title: string;
     content: Buffer;
     owner: Types.ObjectId;
