@@ -1,9 +1,9 @@
 // backend/src/models/User.ts
 
-import { Schema, model, Document, ObjectId } from "mongoose";
+import { Schema, model, Document, ObjectId, Types } from "mongoose";
 import bcrypt from "bcrypt";
 
-export interface IUser extends Document<ObjectId, any, any> {
+export interface IUser extends Document<Types.ObjectId, any, any> {
     email?: string;
     name: string; // will be set randomly for anonymous users
     password?: string;

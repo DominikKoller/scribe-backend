@@ -8,6 +8,7 @@ import { UserCommentCallModel } from '../models/Logs';
 import { createDefaultDocument } from '../controllers/documentController';
 import { GraphQLError } from 'graphql';
 import { AuthContext } from '../apolloServer';
+import { Types } from 'mongoose';
 
 // THIS FILE HANDLES ALL AUTHORIZATION AND RESOURCE ACCESS CONTROL
 // When business logic is small enough, it can be handled here too
@@ -43,12 +44,34 @@ const resolvers = {
                     },
                 });
             }
-            const documents = await DocumentModel.find({ owner: user._id });
+
+            const documents = await DocumentModel.find({
+                $or: [
+                    { owner: user._id },
+                    { users: user._id },
+                ]
+            })
+                .populate('owner', 'email name isAnonymous')
+                .populate('users', 'email name isAnonymous');
+
+
             return documents.map((document: any) => ({
                 id: document._id.toString(),
                 title: document.title,
                 createdAt: document.createdAt,
                 updatedAt: document.updatedAt,
+                owner: {
+                    id: document.owner._id.toString(),
+                    email: document.email,
+                    name: document.owner.name,
+                    isAnonymous: document.isAnonymous,
+                },
+                users: document.users.map((user: any) => ({
+                    id: user._id.toString(),
+                    email: user.email,
+                    name: user.name,
+                    isAnonymous: user.isAnonymous,
+                }))
             }));
         },
     },
@@ -73,10 +96,10 @@ const resolvers = {
 
             // TODO validate password strength
             // TODO validate email, at least as a valid email address but actually with a sent link
-            const user = new User({ 
-                email, 
+            const user = new User({
+                email,
                 name,
-                password, 
+                password,
                 commentCallsDayLimit: USER_COMMENT_CALL_DAY_LIMIT,
                 documentsLimit: USER_DOC_LIMIT
             });
@@ -142,7 +165,7 @@ const resolvers = {
                 "Cartesian", "Quaternion", "Fibonacci", "Prime", "Irrational",
                 "Factorial", "Matrices", "Vector", "Tensor", "Imaginary"
             ];
-            
+
             const animals = [
                 "Aardvark", "Penguin", "Elephant", "Kangaroo", "Platypus",
                 "Octopus", "Giraffe", "Chinchilla", "Hedgehog", "Koala",
@@ -156,7 +179,7 @@ const resolvers = {
             const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
             const randomName = `${randomMathTerm} ${randomAnimal}`;
 
-            const anonymousUser = new User({ 
+            const anonymousUser = new User({
                 isAnonymous: true,
                 name: randomName,
                 commentCallsDayLimit: ANON_USER_COMMENT_CALL_DAY_LIMIT,
@@ -244,6 +267,42 @@ const resolvers = {
             });
 
             return deleteResult.deletedCount === 1;
+        },
+        inviteUserToDocument: async (_: any, { documentId, email }: { documentId: string, email: string }, { user }: AuthContext) => {
+            if (!user) {
+                throw new GraphQLError('Not authenticated', {
+                    extensions: {
+                        code: 'UNAUTHENTICATED',
+                    },
+                });
+            }
+
+            const document = await DocumentModel.findOne({ _id: documentId, owner: user._id });
+            if (!document) {
+                throw new GraphQLError('Document not found', {
+                    extensions: {
+                        code: 'DOCUMENT_NOT_FOUND',
+                    },
+                });
+            }
+
+            const invitedUser = await User.findOne({ email });
+
+            // TODO think through this: it allows for finding out whether a user exists
+            if (!invitedUser) {
+                throw new GraphQLError('User not found', {
+                    extensions: {
+                        code: 'USER_NOT_FOUND',
+                    },
+                });
+            }
+
+            if (!document.users.includes(invitedUser._id)) {
+                document.users.push(invitedUser._id);
+            }
+            await document.save();
+            // TODO add notification to invited user
+            return true;
         },
         runLLMOnDocument: async (_: any, { id }: { id: string }, { user }: AuthContext) => {
             if (!user) {

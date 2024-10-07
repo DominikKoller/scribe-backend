@@ -35,6 +35,7 @@ const typeDefs = `#graphql
         refresh(refreshToken: String!): AuthPayload!
         createDocument(title: String!): Document!
         deleteDocument(id: ID!): Boolean!
+        inviteUserToDocument(documentId: ID!, email: String!): Boolean!
         runLLMOnDocument(id: ID!): Boolean!
     }
 `;
