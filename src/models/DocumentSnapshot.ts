@@ -12,7 +12,7 @@ export interface IDocumentSnapshot extends MDocument<ObjectId, any, any> {
     comments: { 
         paragraph_index: number;
         comment_text: string;
-    }
+    }[]
 }
 
 const DocumentSnapshotSchema = new Schema<IDocumentSnapshot>({

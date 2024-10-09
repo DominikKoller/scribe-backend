@@ -6,6 +6,7 @@ import { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources
 import hocuspocusServer from '../hocuspocusServer';
 import * as Y from 'yjs';
 import { ExternalAPICallModel } from '../models/Logs';
+import DocumentSnapshot, { IDocumentSnapshot } from '../models/DocumentSnapshot';
 
 // TODO this should be moved to a shared types file
 // it is also on the frontend!
@@ -37,12 +38,43 @@ export const runLLMOnDocument = async (documentId: string, userId: string) => {
 
         const paragraphsWithIndices = getAllParagraphTexts(tiptapYFragment).map((text, index) => ({ index, text }));
 
-        // Prepare the prompt
-        const messages: ChatCompletionMessageParam[] = [
-          {
-            role: 'system',
-            content:
-              `You are a mentor who helps students write their university application letters for UK elite universities. You are giving feedback on a student's draft. The letter the student is writing should be structured in the following way:
+        // **Load the example data from the database**
+        const examples: IDocumentSnapshot[] = await DocumentSnapshot.find();
+
+        // **Prepare the examples for the prompt**
+        const exampleTexts = examples.map((example, idx) => {
+          // Format the student's current draft
+          const paragraphs = example.paragraphs.map((text, index) => `${index}: ${text}`).join('\n');
+
+          // Format the assistant's feedback (function calls)
+          const addCommentsCalls = example.comments.map(comment => ({
+            paragraph_index: comment.paragraph_index,
+            comment_text: comment.comment_text,
+          }));
+
+          // Create the function call representation
+          const assistantFeedback = [];
+
+          if (addCommentsCalls.length > 0) {
+            assistantFeedback.push(`Function call: add_comments with arguments:\n${JSON.stringify({ comments: addCommentsCalls }, null, 2)}`);
+          }
+
+          // **Assuming there's no overall comment in the example data**
+          // If there is, you can handle it similarly
+
+          // Combine into the example text
+          return `Example ${idx + 1}:
+
+Student's current draft split into paragraphs. Each paragraph has an index number.
+
+${paragraphs}
+
+Assistant's feedback:
+
+${assistantFeedback.join('\n')}`;
+        }).join('\n\n');
+
+        let systemMessage = `You are a mentor who helps students write their university application letters for UK elite universities. You are giving feedback on a student's draft. The letter the student is writing should be structured in the following way:
               
 A) Introduction: The first sentence should be _very_ engaging and memorable. It should most of all give a sense of the student's personality. The introduction should give the reader a sense of what this essay is going to talk about. Think: "Here is what I am going to tell you in this essay" 
 B) The main part should be structured into paragraphs. Each paragraph should talk about one specific aspect of the student's life, personality, achievements or interests. Every paragraph should follow the structure: "Here is what I did, here is what I learned from it, here is how that makes me a great candidate for the course I am applying to". The paragraphs should tie together well, and each paragraph must make the essential connection between the student and the course they are applying to.
@@ -52,18 +84,38 @@ You should give feedback in three stages:
 
 1) If the student is just starting out on their draft, you should give them general advice on how to structure their letter and what to include. You may give them advice on the structure outlined above.
 2) If the student has a draft, you should give them feedback on the individual paragraphs, how to improve them, how to adhere to the structure better. You can suggest to add paragraphs, or to remove them, or anything that will help the student write a better essay.
-3) If the student is close to a final draft, you should give let them know whether this essay is likely to give them an advantage in their application or whether they need to focus on more improvements. Tell the student what they did well, and offer incremental improvements where necessary.
+3) If the student is close to a final draft, you should let them know whether this essay is likely to give them an advantage in their application or whether they need to focus on more improvements. Tell the student what they did well, and offer incremental improvements where necessary.
 
+In any stage of your feedback, it is very important that you encourage the student. Make sure to praise the things they did well, and offer feedback as a potential for improvement. Your feedback should, however, be concise and to the point. You will be given a list of paragraphs, and you can add a comment to each paragraph of the student's current draft. You should also add one overall comment on the document.
+`;
 
-In any stage of your feedback, it is very important that you encourage the student. Make sure to praise the things they did well, and offer feedback as a potential for improvement. Your feedback should however be concise and to the point. You will be given a list of paragraphs, and you can add a comment to each paragraph of the student's current draft. You should also add one overall comment on the document.`,
+        if (examples.length > 0) {
+          systemMessage += `Here are some examples of how to provide feedback on a student's draft. Each example includes the student's current draft and the assistant's feedback in the form of function calls.
+
+${exampleTexts}
+
+Make sure you keep closely to the style of the examples. The examples are the most important guide for the style, but also the content your feedback should have. You should give feedback on the student's draft in the same way as the examples.
+`;
+        }
+
+        // **Prepare the prompt messages**
+        const messages: ChatCompletionMessageParam[] = [
+          {
+            role: 'system',
+            content: systemMessage,
           },
           {
             role: 'user',
-            content: `Here is the student's current draft split into paragraphs. Each paragraph has an index number.\n\n${paragraphsWithIndices
-              .map((p) => `${p.index}: ${p.text}`)
-              .join('\n')}\n\nHelp the student improve this application letter.\n\nUse 'add_comment_on_whole_document' to add one overall comment on the document. Use the 'add_comments' tool to add your comments to specific paragraphs, referring to them by their index number.`,
+            content: `Here is the student's current draft split into paragraphs. Each paragraph has an index number.
+            ${paragraphsWithIndices
+                .map((p) => `${p.index}: ${p.text}`)
+                .join('\n')}
+              Help the student improve this application letter.
+              Use 'add_comment_on_whole_document' to add one overall comment on the document. Use the 'add_comments' tool to add your comments to specific paragraphs, referring to them by their index number.`,
           },
         ];
+
+        console.log("MESSAGES: ", JSON.stringify(messages, null, 2));
 
         // Define the tool
         const tools: ChatCompletionTool[] = [
@@ -235,7 +287,7 @@ function addCommentOnWholeDocument(tiptapYFragment: Y.XmlFragment, commentText: 
       color: '#958DF1'
     }
   });
-  
+
 
   paragraph.push([textNode]);
   tiptapYFragment.push([paragraph]);
