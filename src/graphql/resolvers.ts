@@ -164,7 +164,7 @@ const resolvers = {
                 });
             }
 
-            // GENERATE NAME
+            // some random name for anon users
             const mathTerms = [
                 "Algebraic", "Geometric", "Euclidean", "Polynomial", "Logarithmic",
                 "Trigonometric", "Differential", "Integral", "Exponential", "Quadratic",
@@ -344,7 +344,7 @@ const resolvers = {
                         }
                     },
                     {
-                        // unwind because lookup returns an array
+                        // unwind bc lookup returns an array
                         $unwind: '$user',
                     },
                     {
