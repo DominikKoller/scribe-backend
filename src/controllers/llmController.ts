@@ -80,7 +80,7 @@ In any stage of your feedback, it is very important that you encourage the stude
 ${exampleTexts}
 
 Make sure you keep closely to the style of the examples. The examples are the most important guide for the style, but also the content your feedback should have. You should give feedback on the student's draft in the same way as the examples.
-You don't need to always suggest how to improve a paragraph, or even the whole draft. If the student has done well, mention what they did well instead of offering improvements.`;
+You don't need to always suggest how to improve a paragraph, or even the whole draft. If the student has done well, mention what they did well instead of offering improvements. This is important: do not suggest changes or improvements on paragraphs that are already good. This would be discouraging to the student. Instead, point out the good things, and focus only on the things that really need improvement. If the whole draft is good, explain why it is good, and do not suggest changes just for the sake of suggesting changes.`;
         }
 
         const messages: ChatCompletionMessageParam[] = [
