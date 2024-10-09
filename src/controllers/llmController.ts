@@ -8,8 +8,6 @@ import * as Y from 'yjs';
 import { ExternalAPICallModel } from '../models/Logs';
 import DocumentSnapshot, { IDocumentSnapshot } from '../models/DocumentSnapshot';
 
-// TODO this should be moved to a shared types file
-// it is also on the frontend!
 export interface CommentType {
   id: string;
   text: string;
@@ -21,7 +19,6 @@ export interface CommentType {
 export const runLLMOnDocument = async (documentId: string, userId: string) => {
 
   try {
-    // Access Yjs document
     const context = { isFromServer: true };
     const connection = await hocuspocusServer.openDirectConnection(documentId, context);
 
@@ -33,36 +30,24 @@ export const runLLMOnDocument = async (documentId: string, userId: string) => {
         const tiptapYFragment = document.getXmlFragment('default');
         const commentsArray: Y.Array<CommentType> = document.getArray('comments')
 
-        // example usage: add a comment to the first paragraph
-        // addComment(tiptapYFragment, commentsArray, 0, "text", "author");
-
         const paragraphsWithIndices = getAllParagraphTexts(tiptapYFragment).map((text, index) => ({ index, text }));
 
-        // **Load the example data from the database**
         const examples: IDocumentSnapshot[] = await DocumentSnapshot.find();
 
-        // **Prepare the examples for the prompt**
         const exampleTexts = examples.map((example, idx) => {
-          // Format the student's current draft
           const paragraphs = example.paragraphs.map((text, index) => `${index}: ${text}`).join('\n');
 
-          // Format the assistant's feedback (function calls)
           const addCommentsCalls = example.comments.map(comment => ({
             paragraph_index: comment.paragraph_index,
             comment_text: comment.comment_text,
           }));
 
-          // Create the function call representation
           const assistantFeedback = [];
 
           if (addCommentsCalls.length > 0) {
             assistantFeedback.push(`Function call: add_comments with arguments:\n${JSON.stringify({ comments: addCommentsCalls }, null, 2)}`);
           }
 
-          // **Assuming there's no overall comment in the example data**
-          // If there is, you can handle it similarly
-
-          // Combine into the example text
           return `Example ${idx + 1}:
 
 Student's current draft split into paragraphs. Each paragraph has an index number.
@@ -98,7 +83,6 @@ Make sure you keep closely to the style of the examples. The examples are the mo
 `;
         }
 
-        // **Prepare the prompt messages**
         const messages: ChatCompletionMessageParam[] = [
           {
             role: 'system',
@@ -115,9 +99,6 @@ Make sure you keep closely to the style of the examples. The examples are the mo
           },
         ];
 
-        console.log("MESSAGES: ", JSON.stringify(messages, null, 2));
-
-        // Define the tool
         const tools: ChatCompletionTool[] = [
           {
             type: 'function',
@@ -174,12 +155,10 @@ Make sure you keep closely to the style of the examples. The examples are the mo
           },
         ];
 
-        // OpenAI API setup
         const openai = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
         });
 
-        // Call the OpenAI API
         const response = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages,
@@ -187,8 +166,8 @@ Make sure you keep closely to the style of the examples. The examples are the mo
           tool_choice: 'auto',
         });
 
-        console.log('OpenAI response:', response);
-        console.log("MESSAGE: ", JSON.stringify(response.choices[0].message, null, 2));
+        // console.log('OpenAI response:', response);
+        // console.log("MESSAGE: ", JSON.stringify(response.choices[0].message, null, 2));
 
         const log = new ExternalAPICallModel({
           userId,
@@ -200,7 +179,6 @@ Make sure you keep closely to the style of the examples. The examples are the mo
 
         const message = response.choices[0].message;
 
-        // Handle tool calls
         if (message.tool_calls && message.tool_calls.length > 0) {
           for (const toolCall of message.tool_calls) {
             const toolType = toolCall.type;
@@ -254,10 +232,8 @@ function addComment(
   commentText: string,
   author: string
 ) {
-  // Generate a unique comment ID
   const commentId = uuidv4();
 
-  // Create the comment object
   const comment: CommentType = {
     id: commentId,
     text: commentText,
@@ -265,18 +241,15 @@ function addComment(
     timestamp: Date.now(),
   };
 
-  // Add the comment to the comments array
   commentsArray.push([comment]);
 
-  // Apply the comment mark to the paragraph
   addCommentMarkToParagraph(tiptapYFragment, paragraphIndex, commentId);
 }
 
 // just adds an italic text to the end of the document, which serves as a an overall 'comment'
 // Has nothing to do with the comment marks or the comments array
 function addCommentOnWholeDocument(tiptapYFragment: Y.XmlFragment, commentText: string) {
-  // add new paragraph to tiptapYFragment
-  // with a <span style="color: #958DF1"></span> tag too
+
   const paragraph = new Y.XmlElement('paragraph');
   const textNode = new Y.XmlText();
   textNode.insert(0, commentText);
@@ -303,7 +276,6 @@ function getAllParagraphNodes(node: Y.XmlElement | Y.XmlFragment): Y.XmlElement[
       if (child.nodeName === 'paragraph') {
         paragraphs.push(child);
       }
-      // Recursively search for paragraphs in child nodes
       paragraphs = paragraphs.concat(getAllParagraphNodes(child));
     }
   }
@@ -315,7 +287,6 @@ function getAllParagraphTexts(tiptapYFragment: Y.XmlFragment): string[] {
   return paragraphs.map(paragraph => getTextContent(paragraph));
 }
 
-// Helper function remains the same
 function getTextContent(node: Y.XmlElement | Y.XmlFragment): string {
   let textContent = '';
 
@@ -331,22 +302,17 @@ function getTextContent(node: Y.XmlElement | Y.XmlFragment): string {
 }
 
 function addCommentMarkToParagraph(tiptapYFragment: Y.XmlFragment, paragraphIndex: number, commentId: string) {
-  // Get all paragraph nodes in the document, regardless of their depth
   const paragraphs = getAllParagraphNodes(tiptapYFragment);
 
-  // Get the paragraph at the specified index
   const paragraph = paragraphs[paragraphIndex];
 
-  // Check if the paragraph exists
   if (!paragraph) {
     throw new Error(`Paragraph at index ${paragraphIndex} not found.`);
   }
 
-  // Apply the comment mark to all text nodes within the paragraph
   formatTextNodesInElement(paragraph, { comment: { commentId: commentId } });
 }
 
-// Helper function to recursively format text nodes within an element
 function formatTextNodesInElement(element: Y.XmlElement | Y.XmlFragment, attributes: Record<string, any>) {
   for (const node of element.toArray()) {
     if (node instanceof Y.XmlText) {
